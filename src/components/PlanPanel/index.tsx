@@ -11,35 +11,34 @@ const COLLAPSED_HEIGHT = 8;  // vh
 
 export default function PlanPanel() {
   const { planBlocks, calendarEvents, currentTripId } = useTripStore();
-  const { selectedBlockId } = useDndApp();
+  const { selectedBlockId, isDragging } = useDndApp();
 
   const [showAddModal, setShowAddModal] = useState(false);
-  // Mobile bottom sheet state
   const [sheetHeight, setSheetHeight] = useState(RESTING_HEIGHT);
+  // Disable CSS transition while user is manually dragging the handle
+  const isManualDragging = useRef(false);
 
-  // Auto-collapse bottom sheet when a block is selected (to reveal the calendar)
+  // Auto-collapse when a block is selected (two-step tap) or drag starts
   useEffect(() => {
-    if (selectedBlockId) {
+    if (selectedBlockId || isDragging) {
       setSheetHeight(COLLAPSED_HEIGHT);
     } else {
       setSheetHeight(RESTING_HEIGHT);
     }
-  }, [selectedBlockId]);
+  }, [selectedBlockId, isDragging]);
 
-  // Make the plan panel a drop zone so users can drag events back to unschedule
   const { setNodeRef: setPanelRef, isOver: isPanelOver } = useDroppable({
     id: 'plan-panel',
     data: { type: 'plan-panel' },
   });
+
   const dragStartY = useRef<number | null>(null);
   const dragStartHeight = useRef<number>(RESTING_HEIGHT);
 
-  // Filter blocks for current trip, sorted by order
   const tripBlocks = planBlocks
     .filter((b) => b.tripId === currentTripId)
     .sort((a, b) => a.order - b.order);
 
-  // Determine which blocks are scheduled (have at least one CalendarEvent)
   const scheduledBlockIds = new Set(
     calendarEvents
       .filter((e) => e.tripId === currentTripId)
@@ -49,23 +48,23 @@ export default function PlanPanel() {
   const unscheduled = tripBlocks.filter((b) => !scheduledBlockIds.has(b.id));
   const scheduled = tripBlocks.filter((b) => scheduledBlockIds.has(b.id));
 
-  // Mobile touch drag handlers for bottom sheet
   function onTouchStart(e: React.TouchEvent) {
+    isManualDragging.current = true;
     dragStartY.current = e.touches[0].clientY;
     dragStartHeight.current = sheetHeight;
   }
 
   function onTouchMove(e: React.TouchEvent) {
     if (dragStartY.current === null) return;
+    e.preventDefault(); // prevent page scroll while dragging sheet
     const deltaY = dragStartY.current - e.touches[0].clientY;
-    const windowH = window.innerHeight;
-    const deltaVh = (deltaY / windowH) * 100;
+    const deltaVh = (deltaY / window.innerHeight) * 100;
     const newHeight = Math.min(EXPANDED_HEIGHT, Math.max(COLLAPSED_HEIGHT, dragStartHeight.current + deltaVh));
     setSheetHeight(newHeight);
   }
 
   function onTouchEnd() {
-    // Snap to nearest state
+    isManualDragging.current = false;
     const distances = [
       { height: COLLAPSED_HEIGHT, dist: Math.abs(sheetHeight - COLLAPSED_HEIGHT) },
       { height: RESTING_HEIGHT, dist: Math.abs(sheetHeight - RESTING_HEIGHT) },
@@ -92,7 +91,7 @@ export default function PlanPanel() {
         )}
       </div>
 
-      {/* Body — also a drop zone for unscheduling events */}
+      {/* Body */}
       <div
         ref={setPanelRef}
         className={`flex-1 overflow-y-auto px-3 py-3 space-y-4 transition-colors ${isPanelOver ? 'bg-green-50' : ''}`}
@@ -109,13 +108,10 @@ export default function PlanPanel() {
           </div>
         ) : (
           <>
-            {/* Unscheduled section */}
             {unscheduled.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2 px-1">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Unscheduled
-                  </p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Unscheduled</p>
                   <span className="text-[10px] font-semibold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
                     {unscheduled.length}
                   </span>
@@ -128,13 +124,10 @@ export default function PlanPanel() {
               </div>
             )}
 
-            {/* Scheduled section */}
             {scheduled.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2 px-1">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Scheduled
-                  </p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Scheduled</p>
                   <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-400 px-1.5 py-0.5 rounded-full">
                     {scheduled.length}
                   </span>
@@ -154,34 +147,42 @@ export default function PlanPanel() {
 
   return (
     <>
-      {/* Desktop: fixed width sidebar panel */}
+      {/* Desktop */}
       <div className="hidden md:flex flex-col w-[260px] h-full bg-white border-r border-gray-200 flex-shrink-0">
         {panelContent}
       </div>
 
       {/* Mobile: bottom sheet */}
       <div
-        className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white rounded-t-2xl shadow-2xl flex flex-col transition-[height] duration-150"
-        style={{ height: `${sheetHeight}vh` }}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white rounded-t-2xl shadow-2xl flex flex-col"
+        style={{
+          height: `${sheetHeight}vh`,
+          transition: isManualDragging.current ? 'none' : 'height 0.2s ease',
+        }}
       >
-        {/* Drag handle */}
+        {/* Drag handle — touch target is intentionally tall */}
         <div
-          className="flex justify-center pt-3 pb-1 cursor-ns-resize flex-shrink-0"
+          className="flex justify-center pt-3 pb-2 flex-shrink-0 touch-none"
+          style={{ minHeight: 44 }}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-          <div className="w-12 h-1.5 rounded-full bg-gray-300" />
+          <div className="w-12 h-1.5 rounded-full bg-gray-300 mt-1" />
         </div>
 
         {sheetHeight > COLLAPSED_HEIGHT + 2 ? panelContent : (
-          <div className="flex items-center justify-center flex-1 pb-2">
-            <span className="text-xs text-gray-400">Drag up to see plans</span>
+          <div
+            className="flex items-center justify-center flex-1 pb-2 touch-none"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
+            <span className="text-xs text-gray-400">↑ 위로 올려서 계획 보기</span>
           </div>
         )}
       </div>
 
-      {/* Add Plan Modal */}
       {showAddModal && (
         <AddPlanModal mode="add" onClose={() => setShowAddModal(false)} />
       )}

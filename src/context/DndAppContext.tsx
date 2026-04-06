@@ -5,16 +5,21 @@ interface DndAppContextValue {
   selectedBlockId: string | null;
   setSelectedBlockId: (id: string | null) => void;
   isMobile: boolean;
+  isDragging: boolean;
+  setIsDragging: (v: boolean) => void;
 }
 
 const DndAppContext = createContext<DndAppContextValue>({
   selectedBlockId: null,
   setSelectedBlockId: () => {},
   isMobile: false,
+  isDragging: false,
+  setIsDragging: () => {},
 });
 
 export function DndAppProvider({ children }: { children: ReactNode }) {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' && window.innerWidth <= 768
   );
@@ -28,7 +33,7 @@ export function DndAppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <DndAppContext.Provider value={{ selectedBlockId, setSelectedBlockId, isMobile }}>
+    <DndAppContext.Provider value={{ selectedBlockId, setSelectedBlockId, isMobile, isDragging, setIsDragging }}>
       {children}
     </DndAppContext.Provider>
   );

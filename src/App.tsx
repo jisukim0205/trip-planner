@@ -13,19 +13,13 @@ import { createSeedData } from './utils/seed';
 import Sidebar from './components/Sidebar';
 import PlanPanel from './components/PlanPanel';
 import Calendar from './components/Calendar';
-import { DndAppProvider } from './context/DndAppContext';
+import { DndAppProvider, useDndApp } from './context/DndAppContext';
 import { COLOR_MAP, COLOR_HEX } from './utils/colors';
 
 /**
  * Custom modifier: shifts the DragOverlay so its top-left corner
  * is exactly at the pointer, regardless of where inside the element
  * the user grabbed it.
- *
- * @dnd-kit positions the overlay at (rect.left + transform.x, rect.top + transform.y).
- * At drag start transform = {0, 0}, so overlay starts at the element's top-left.
- * If the user grabbed at (clientX, clientY) inside the element, the offset is
- * (clientX - rect.left, clientY - rect.top).
- * Adding that offset makes the overlay top-left sit exactly at the cursor.
  */
 const snapToCursor: Modifier = ({ activatorEvent, draggingNodeRect, transform }) => {
   if (draggingNodeRect && activatorEvent) {
@@ -59,7 +53,8 @@ function DragGhost({ label, color, duration }: { label: string; color: string; d
   );
 }
 
-export default function App() {
+/** Inner component — consumes DndAppContext so it can update isDragging */
+function AppContent() {
   const {
     _seeded,
     setSeedDone,
@@ -76,9 +71,9 @@ export default function App() {
     currentTripId,
   } = useTripStore();
 
+  const { setIsDragging } = useDndApp();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Track which item is currently being dragged for DragOverlay rendering
   const [activeItem, setActiveItem] = useState<{
     type: 'plan-block' | 'calendar-event';
     label: string;
@@ -87,7 +82,6 @@ export default function App() {
   } | null>(null);
 
   useEffect(() => {
-    // Use a timeout to ensure store is hydrated from localStorage first
     const timer = setTimeout(() => {
       if (!_seeded && trips.length === 0) {
         const { trip, blocks, events } = createSeedData();
@@ -104,10 +98,11 @@ export default function App() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } })
   );
 
   function handleDragStart(event: DragStartEvent) {
+    setIsDragging(true);
     const data = event.active.data.current;
     if (!data) return;
 
@@ -117,15 +112,16 @@ export default function App() {
         setActiveItem({ type: 'plan-block', label: block.title, color: block.color, duration: block.duration });
       }
     } else if (data.type === 'calendar-event') {
-      const event = calendarEvents.find((e) => e.id === data.eventId);
+      const ev = calendarEvents.find((e) => e.id === data.eventId);
       const block = planBlocks.find((b) => b.id === data.blockId);
       if (block) {
-        setActiveItem({ type: 'calendar-event', label: block.title, color: block.color, duration: event?.duration ?? block.duration });
+        setActiveItem({ type: 'calendar-event', label: block.title, color: block.color, duration: ev?.duration ?? block.duration });
       }
     }
   }
 
   function handleDragEnd(event: DragEndEvent) {
+    setIsDragging(false);
     setActiveItem(null);
     const { active, over } = event;
     if (!over) return;
@@ -145,7 +141,6 @@ export default function App() {
 
       const existingEvent = calendarEvents.find((e) => e.planBlockId === block.id);
       if (existingEvent && !block.repeatable) {
-        // Move existing event instead of creating a duplicate
         updateCalendarEvent(existingEvent.id, {
           date: overData.date,
           startHour: overData.hour,
@@ -181,37 +176,37 @@ export default function App() {
   }
 
   return (
+    <DndContext sensors={sensors} modifiers={[snapToCursor]} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="h-screen flex bg-[#f5f5f7] overflow-hidden">
+        {/* Mobile hamburger button */}
+        <button
+          className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-xl bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open sidebar"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M3 5h14M3 10h14M3 15h14" />
+          </svg>
+        </button>
+
+        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+        <PlanPanel />
+        <Calendar />
+      </div>
+
+      <DragOverlay dropAnimation={null}>
+        {activeItem ? (
+          <DragGhost label={activeItem.label} color={activeItem.color} duration={activeItem.duration} />
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+export default function App() {
+  return (
     <DndAppProvider>
-      <DndContext sensors={sensors} modifiers={[snapToCursor]} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="h-screen flex bg-[#f5f5f7] overflow-hidden">
-          {/* Mobile hamburger button — fixed top-left, only on mobile */}
-          <button
-            className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-xl bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open sidebar"
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M3 5h14M3 10h14M3 15h14" />
-            </svg>
-          </button>
-
-          {/* Sidebar (desktop: fixed panel, mobile: slide-in drawer) */}
-          <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-
-          {/* Plans Panel */}
-          <PlanPanel />
-
-          {/* Calendar */}
-          <Calendar />
-        </div>
-
-        {/* Drag overlay ghost */}
-        <DragOverlay dropAnimation={null}>
-          {activeItem ? (
-            <DragGhost label={activeItem.label} color={activeItem.color} duration={activeItem.duration} />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+      <AppContent />
     </DndAppProvider>
   );
 }

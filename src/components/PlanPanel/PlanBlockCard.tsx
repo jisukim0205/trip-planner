@@ -68,11 +68,10 @@ export default function PlanBlockCard({ block, isScheduled }: PlanBlockCardProps
 
   const colors = COLOR_MAP[block.color];
 
-  // Draggable: disable on mobile (use tap flow) and for scheduled non-repeatable blocks
+  // Always draggable — on mobile, TouchSensor delay (250ms) distinguishes tap vs drag
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `plan-block-${block.id}`,
     data: { type: 'plan-block', blockId: block.id },
-    disabled: isMobile,
   });
 
   function handleClick() {
@@ -106,7 +105,8 @@ export default function PlanBlockCard({ block, isScheduled }: PlanBlockCardProps
             : 'cursor-grab active:cursor-grabbing hover:shadow-md'
         }`}
         onClick={handleClick}
-        {...(isMobile ? {} : { ...attributes, ...listeners })}
+        {...attributes}
+        {...listeners}
       >
         {/* Drag handle (desktop only) */}
         {!isMobile && (
