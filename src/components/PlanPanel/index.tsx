@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useTripStore } from '../../store/useTripStore';
 import PlanBlockCard from './PlanBlockCard';
 import AddPlanModal from '../Modals/AddPlanModal';
+import { useDndApp } from '../../context/DndAppContext';
 
 const RESTING_HEIGHT = 40;   // vh
 const EXPANDED_HEIGHT = 80;  // vh
@@ -10,10 +11,20 @@ const COLLAPSED_HEIGHT = 8;  // vh
 
 export default function PlanPanel() {
   const { planBlocks, calendarEvents, currentTripId } = useTripStore();
+  const { selectedBlockId } = useDndApp();
 
   const [showAddModal, setShowAddModal] = useState(false);
   // Mobile bottom sheet state
   const [sheetHeight, setSheetHeight] = useState(RESTING_HEIGHT);
+
+  // Auto-collapse bottom sheet when a block is selected (to reveal the calendar)
+  useEffect(() => {
+    if (selectedBlockId) {
+      setSheetHeight(COLLAPSED_HEIGHT);
+    } else {
+      setSheetHeight(RESTING_HEIGHT);
+    }
+  }, [selectedBlockId]);
 
   // Make the plan panel a drop zone so users can drag events back to unschedule
   const { setNodeRef: setPanelRef, isOver: isPanelOver } = useDroppable({

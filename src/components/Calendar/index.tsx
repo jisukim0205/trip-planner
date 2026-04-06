@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTripStore } from '../../store/useTripStore';
+import { useDndApp } from '../../context/DndAppContext';
 import CalendarHeader from './CalendarHeader';
 import DayView from './DayView';
 import WeekView from './WeekView';
@@ -28,16 +29,20 @@ function EmptyCalendar() {
 
 export default function Calendar() {
   const { currentView, currentTripId, trips } = useTripStore();
+  const { isMobile } = useDndApp();
   const trip = trips.find((t) => t.id === currentTripId);
 
   if (!trip) return <EmptyCalendar />;
 
+  // Week view is too cramped on mobile — render Day view instead
+  const effectiveView = isMobile && currentView === 'week' ? 'day' : currentView;
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#f5f5f7]">
       <CalendarHeader trip={trip} />
-      {currentView === 'map' ? (
+      {effectiveView === 'map' ? (
         <MapView trip={trip} />
-      ) : currentView === 'day' ? (
+      ) : effectiveView === 'day' ? (
         <DayView trip={trip} />
       ) : (
         <WeekView trip={trip} />

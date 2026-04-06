@@ -1,5 +1,6 @@
 import type { Trip, CalendarEvent, PlanBlock } from '../../types';
 import { useTripStore } from '../../store/useTripStore';
+import { useDndApp } from '../../context/DndAppContext';
 import { addDays, formatHour } from '../../utils/dates';
 import EventChip from './EventChip';
 import TimeSlotCell from './TimeSlotCell';
@@ -56,10 +57,11 @@ function getOverlapLayout(events: CalendarEvent[]): Map<string, { colIdx: number
 }
 
 const ROW_HEIGHT = 56;
-const TIME_COL_WIDTH = 64;
 
 export default function DayView({ trip }: DayViewProps) {
   const { currentWeekStart, planBlocks, calendarEvents } = useTripStore();
+  const { isMobile } = useDndApp();
+  const TIME_COL_WIDTH = isMobile ? 44 : 64;
 
   // currentWeekStart is reused as "current day" in day view
   const currentDay = currentWeekStart;

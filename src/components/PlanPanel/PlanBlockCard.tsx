@@ -140,9 +140,11 @@ export default function PlanBlockCard({ block, isScheduled }: PlanBlockCardProps
           </div>
         </div>
 
-        {/* × delete button — visible on hover */}
+        {/* × delete button — always visible on mobile, hover-only on desktop */}
         <button
-          className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-[12px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-black/10 hover:text-gray-600 transition-opacity"
+          className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-[13px] font-bold text-gray-400 hover:bg-black/10 hover:text-gray-600 transition-opacity ${
+            isMobile ? 'opacity-60' : 'opacity-0 group-hover:opacity-100'
+          }`}
           onClick={(e) => { e.stopPropagation(); isScheduled ? unscheduleBlock(block.id) : deletePlanBlock(block.id); }}
           onPointerDown={(e) => e.stopPropagation()}
           title={isScheduled ? 'Remove from calendar' : 'Delete plan'}

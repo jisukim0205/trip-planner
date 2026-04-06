@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
 interface DndAppContextValue {
@@ -15,9 +15,17 @@ const DndAppContext = createContext<DndAppContextValue>({
 
 export function DndAppProvider({ children }: { children: ReactNode }) {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' && window.innerWidth <= 768
+  );
 
-  // Detect mobile based on pointer type / screen width
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth <= 768);
+    }
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <DndAppContext.Provider value={{ selectedBlockId, setSelectedBlockId, isMobile }}>

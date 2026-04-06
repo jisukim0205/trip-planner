@@ -3,6 +3,7 @@ import { useDraggable } from '@dnd-kit/core';
 import type { CalendarEvent, PlanBlock } from '../../types';
 import { COLOR_MAP, COLOR_HEX } from '../../utils/colors';
 import { useTripStore } from '../../store/useTripStore';
+import { useDndApp } from '../../context/DndAppContext';
 
 interface EventChipProps {
   event: CalendarEvent;
@@ -22,6 +23,7 @@ function formatDuration(hours: number): string {
 export default function EventChip({ event, block, style, isContinuation, continuationHours }: EventChipProps) {
   const [showPopup, setShowPopup] = useState(false);
   const { deleteCalendarEvent, updateCalendarEvent } = useTripStore();
+  const { isMobile } = useDndApp();
 
   const colorMap = COLOR_MAP[block.color];
   const colorHex = COLOR_HEX[block.color];
@@ -110,10 +112,14 @@ export default function EventChip({ event, block, style, isContinuation, continu
         data-plan-block-id={event.planBlockId}
         {...(isContinuation ? {} : { ...attributes, ...listeners })}
       >
-        {/* × unschedule button — visible on hover */}
+        {/* × unschedule button — always visible on mobile, hover-only on desktop */}
         {!isContinuation && (
           <button
-            className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/0 hover:bg-black/20 text-current opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[11px] font-bold leading-none z-10"
+            className={`absolute top-0.5 right-0.5 rounded-full bg-black/0 hover:bg-black/20 text-current transition-opacity flex items-center justify-center font-bold leading-none z-10 ${
+              isMobile
+                ? 'w-6 h-6 text-sm opacity-80'
+                : 'w-4 h-4 text-[11px] opacity-0 group-hover:opacity-100'
+            }`}
             onClick={(e) => { e.stopPropagation(); deleteCalendarEvent(event.id); }}
             onPointerDown={(e) => e.stopPropagation()}
             title="Remove from calendar"
@@ -133,7 +139,7 @@ export default function EventChip({ event, block, style, isContinuation, continu
         {/* Resize handle at the bottom — only for non-continuation chips */}
         {!isContinuation && (
           <div
-            className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize flex items-center justify-center"
+            className={`absolute bottom-0 left-0 right-0 cursor-ns-resize flex items-center justify-center ${isMobile ? 'h-5' : 'h-2'}`}
             onPointerDown={handleResizePointerDown}
             onClick={(e) => e.stopPropagation()}
             title="Drag to resize"

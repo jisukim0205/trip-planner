@@ -57,18 +57,18 @@ export default function CalendarHeader({ trip }: CalendarHeaderProps) {
   return (
     <div className="bg-white border-b border-gray-200 px-4 py-3 flex flex-col gap-2 flex-shrink-0">
       {/* Top row: trip info */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white rounded-xl px-3 py-1 text-sm font-bold shadow-sm truncate max-w-[180px]">
+      <div className="flex items-center justify-between gap-2 pl-10 md:pl-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white rounded-xl px-3 py-1 text-sm font-bold shadow-sm truncate max-w-[140px] md:max-w-[180px]">
             {trip.title}
           </div>
-          <span className="text-gray-500 text-sm truncate">{trip.destination}</span>
+          <span className="text-gray-500 text-sm truncate hidden sm:block">{trip.destination}</span>
         </div>
 
         {/* View toggle */}
-        <div className="flex items-center bg-gray-100 rounded-full p-1 gap-1 flex-shrink-0">
+        <div className="flex items-center bg-gray-100 rounded-full p-1 gap-0.5 flex-shrink-0">
           <button
-            className={`px-3 py-1 rounded-full text-sm font-semibold transition-colors ${
+            className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
               currentView === 'day'
                 ? 'bg-indigo-600 text-white shadow'
                 : 'text-gray-500 hover:text-gray-700'
@@ -78,7 +78,7 @@ export default function CalendarHeader({ trip }: CalendarHeaderProps) {
             Day
           </button>
           <button
-            className={`px-3 py-1 rounded-full text-sm font-semibold transition-colors ${
+            className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
               currentView === 'week'
                 ? 'bg-indigo-600 text-white shadow'
                 : 'text-gray-500 hover:text-gray-700'
@@ -88,7 +88,7 @@ export default function CalendarHeader({ trip }: CalendarHeaderProps) {
             Week
           </button>
           <button
-            className={`px-3 py-1 rounded-full text-sm font-semibold transition-colors ${
+            className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
               currentView === 'map'
                 ? 'bg-indigo-600 text-white shadow'
                 : 'text-gray-500 hover:text-gray-700'
