@@ -104,7 +104,7 @@ export default function DayView({ trip }: DayViewProps) {
   })();
 
   return (
-    <div className="flex-1 overflow-auto relative">
+    <div className="flex-1 overflow-auto relative pb-[40vh] md:pb-0">
       {/* Day header */}
       <div
         className="sticky top-0 z-20 bg-white border-b border-gray-200 flex"

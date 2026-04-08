@@ -136,10 +136,10 @@ export default function EventChip({ event, block, style, isContinuation, continu
           {formatDuration(displayDuration)}
         </div>
 
-        {/* Resize handle at the bottom — only for non-continuation chips */}
-        {!isContinuation && (
+        {/* Resize handle — desktop only (too fiddly on mobile) */}
+        {!isContinuation && !isMobile && (
           <div
-            className={`absolute bottom-0 left-0 right-0 cursor-ns-resize flex items-center justify-center ${isMobile ? 'h-5' : 'h-2'}`}
+            className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize flex items-center justify-center"
             onPointerDown={handleResizePointerDown}
             onClick={(e) => e.stopPropagation()}
             title="Drag to resize"

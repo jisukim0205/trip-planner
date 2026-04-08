@@ -5,6 +5,7 @@ interface DndAppContextValue {
   selectedBlockId: string | null;
   setSelectedBlockId: (id: string | null) => void;
   isMobile: boolean;
+  isLandscape: boolean;
   isDragging: boolean;
   setIsDragging: (v: boolean) => void;
 }
@@ -13,6 +14,7 @@ const DndAppContext = createContext<DndAppContextValue>({
   selectedBlockId: null,
   setSelectedBlockId: () => {},
   isMobile: false,
+  isLandscape: false,
   isDragging: false,
   setIsDragging: () => {},
 });
@@ -23,17 +25,29 @@ export function DndAppProvider({ children }: { children: ReactNode }) {
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' && window.innerWidth <= 768
   );
+  const [isLandscape, setIsLandscape] = useState(
+    typeof window !== 'undefined' && window.innerWidth > window.innerHeight
+  );
 
   useEffect(() => {
     function handleResize() {
       setIsMobile(window.innerWidth <= 768);
+      setIsLandscape(window.innerWidth > window.innerHeight);
+    }
+    // iOS fires orientationchange before dimensions update — small delay needed
+    function handleOrientation() {
+      setTimeout(handleResize, 100);
     }
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleOrientation);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleOrientation);
+    };
   }, []);
 
   return (
-    <DndAppContext.Provider value={{ selectedBlockId, setSelectedBlockId, isMobile, isDragging, setIsDragging }}>
+    <DndAppContext.Provider value={{ selectedBlockId, setSelectedBlockId, isMobile, isLandscape, isDragging, setIsDragging }}>
       {children}
     </DndAppContext.Provider>
   );
